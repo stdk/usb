@@ -22,29 +22,25 @@ int main(int argc, char **argv)
 	
 	uint8_t get_sn_request[] = {0xff,0,0x10,0,0x10,0xcc};		
 	
-	cp.data_sent.connect([](int status, size_t len) {	
+	auto send_handler = [](int status, size_t len) {
 		fprintf(stderr,"data_sent[%i][%i]\n",status,len);	
-	});
+	};
 	
-	cp.data_received.connect([&get_sn_request,&cp](int status, void *data, size_t len) {
+	cp.data_received.connect([&](int status, void *data, size_t len) {
 		auto bytes_str = usb::format_bytes(data,len);
 		fprintf(stderr,"data_received[%i][%s]\n",status,bytes_str.get());
 		if(!status) {
-			cp.send_async(get_sn_request,sizeof(get_sn_request));
+			cp.send_async(get_sn_request,sizeof(get_sn_request),send_handler);
 			cp.recv_async();
 		}
 	});
 	
 	cp.recv_async();
-	cp.send_async(get_sn_request,sizeof(get_sn_request));
+	cp.send_async(get_sn_request,sizeof(get_sn_request),send_handler);
 	
 	
-	sleep(5);
-	/*int len = 5;
-	while(len--) {
-		cp.send(get_sn_request,sizeof(get_sn_request));
-		sleep(1);
-	}*/
+	sleep(60);
+	
 	
 	return 0;
 	

@@ -16,7 +16,6 @@ class cp210x
 	usb::interface iface;
 	
 	usb::transfer recv_transfer;
-	usb::transfer send_transfer;
 
 	int completed;
 	boost::thread io_thread;
@@ -72,10 +71,12 @@ public:
 	int set_ctl(uint16_t ctl);
 	
 	boost::signals2::signal<void (int status, void *data, size_t len)> data_received;
-	boost::signals2::signal<void (int status, size_t len)> data_sent;
 	
 	int recv_async();
-	int send_async(void *buffer, size_t len, uint32_t timeout = 1000);
+	int send_async(void *buffer, size_t len, 
+	               boost::function<void (int status, size_t bytes_transferred)> callback,
+	               uint32_t timeout = 1000);
+	
 	//int send(void *buffer, size_t len, uint32_t timeout = 1000);
 	//int recv(void *buffer, size_t len, uint32_t timeout = 1000);
 		

@@ -67,7 +67,6 @@ cp210x::cp210x(const usb::context &ctx, bool _auto_recv)
 	  interface_number(0),
 	  iface(handle,interface_number),
 	  recv_transfer(handle,LIBUSB_TRANSFER_TYPE_BULK,UART_ENDPOINT_IN,0,1000),
-	  send_transfer(handle,LIBUSB_TRANSFER_TYPE_BULK,UART_ENDPOINT_OUT,0,500),
 	  completed(0),
 	  auto_recv(_auto_recv) {
 	if(!handle) {
@@ -94,14 +93,8 @@ cp210x::cp210x(const usb::context &ctx, bool _auto_recv)
 		}
 	};
 	
-	auto send_callback = [this](usb::transfer *tr) {
-		//fprintf(stderr,"cp210x::send_callback\n");
-		this->data_sent(tr->status(),tr->actual_length());
-	};
-	
 	recv_transfer.allocate_buffer(64);
 	recv_transfer.transfer_completed.connect(recv_callback);
-	send_transfer.transfer_completed.connect(send_callback);
 	
 	io_thread = boost::thread(boost::bind(&cp210x::io_thread_func,this));
 }
@@ -129,12 +122,9 @@ void cp210x::io_thread_func() {
 	fprintf(stderr,"io_thread_func stop\n");
 	
 	data_received.disconnect_all_slots();
-	data_sent.disconnect_all_slots();
 		
-	send_transfer.cancel();
 	recv_transfer.cancel();
 		
-	//there will be maximum 2 canceled transfers
 	for(size_t i = 0; i < 2; i++) {
 		struct timeval tv = { 0, 0 };
 		context.handle_events_timeout(&tv);
@@ -246,11 +236,53 @@ int cp210x::recv_async() {
 	return recv_transfer.submit();
 }
 
-int cp210x::send_async(void *buffer, size_t len, uint32_t timeout) {
-	send_transfer.set_buffer(buffer,len);
-	send_transfer.set_timeout(timeout);
+/*
+class cp210x_send_transfer_handler
+{
+	boost::shared_ptr<usb::transfer> t;
+	boost::function<void (int status, size_t bytes_transferred)> callback;
+public:
+	cp210x_send_transfer_handler(boost::shared_ptr<usb::transfer> _t,
+	 boost::function<void (int status, size_t bytes_transferred)> _callback)
+	:t(_t),callback(_callback) {
 	
-	return send_transfer.submit();
+	}
+
+	void operator()(boost::signals2::connection c, usb::transfer *tr) {
+		fprintf(stderr,"A callback use_count = %i\n",t.use_count());
+		fprintf(stderr,"cp210x::send_callback[%p]\n",tr);
+		callback(tr->status(),tr->actual_length());
+		c.disconnect();
+		//tr->transfer_completed.disconnect_all_slots();
+		t.reset();
+		fprintf(stderr,"B callback use_count = %i\n",t.use_count());
+	}
+};*/
+
+int cp210x::send_async(void *buffer, size_t len,
+                       boost::function<void (int status, size_t bytes_transferred)> callback, 
+					   uint32_t timeout) {
+	boost::shared_ptr<usb::transfer> t(new usb::transfer(handle,LIBUSB_TRANSFER_TYPE_BULK,UART_ENDPOINT_OUT,0,timeout));
+	t->set_buffer(buffer,len);
+	
+	auto handler = [t,callback](boost::signals2::connection c,usb::transfer *tr) mutable {
+		fprintf(stderr,"A callback use_count = %i\n",t.use_count());
+		fprintf(stderr,"cp210x::send_callback[%p]\n",tr);
+		callback(tr->status(),tr->actual_length());
+		t->transfer_completed.disconnect_all_slots();
+		c.disconnect();
+		//tr->transfer_completed.disconnect_all_slots();
+		t.reset();
+		fprintf(stderr,"B callback use_count = %i\n",t.use_count());
+		
+	};
+	
+	//t->transfer_completed.connect_extended(handler);
+	t->transfer_completed.connect_extended(handler);
+	
+	fprintf(stderr,"use_count = %i\n",t.use_count());
+	
+	return t->submit();
 }
 
 int cp210x::set_interface_config(uint8_t request, const void *data, size_t len) {

@@ -409,6 +409,10 @@ transfer::transfer(device_handle _dev,
 	tr->length = 0;
 }
 
+transfer::~transfer() {
+	fprintf(stderr,"~transfer\n");
+}
+
 transfer::operator bool() const {
 	return tr;
 }

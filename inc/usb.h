@@ -171,6 +171,8 @@ public:
 			 uint8_t flags = 0,
 			 unsigned int timeout = 500);
 	
+	~transfer();
+	
 	/* ------------------------------ */
 	
 	int submit();

@@ -10,6 +10,10 @@
 
 #include <cp210x.h>
 
+#include <stdlib.h>
+
+static const int log_level = getenv("DEBUG_HOMURA") != 0;
+
 using boost::asio::ip::tcp;
 
 class data_stream
@@ -26,7 +30,7 @@ public:
 	}
 	
 	~data_stream() {
-		std::cerr << "~data_stream" << std::endl;
+		if(log_level) std::cerr << "~data_stream" << std::endl;
 	}
 	
 	auto buffer() -> decltype(boost::asio::buffer(data)) {
@@ -81,15 +85,17 @@ public:
 			//check callback
 			[](const boost::system::error_code &error,
 			   size_t bytes_transferred) {
-				std::cerr << "check: " << bytes_transferred << std::endl;
+				if(log_level) std::cerr << "check: " << bytes_transferred << std::endl;
 				return !!error || bytes_transferred > 1;
 			},
 			//read callback
 			[shared,stream](const boost::system::error_code &error,
-			     size_t bytes_transferred) {
-				 std::cerr << "sender: "
-				      << error.message() <<" : "
-				      << bytes_transferred << std::endl;
+				size_t bytes_transferred) {
+				if(log_level) {
+					std::cerr << "sender: "
+				              << error.message() <<" : "
+				              << bytes_transferred << std::endl;
+				}
 				 
 				if(!error) {
 					stream->send(bytes_transferred);
@@ -105,17 +111,21 @@ public:
 		
 		pointer shared = shared_from_this();		
 		auto receiver = [shared](void *data, size_t len) {
-			auto bytes = usb::format_bytes(data,len);
-			std::cerr << "receiver: " << bytes.get() << std::endl;
+			if(log_level) {
+				auto bytes = usb::format_bytes(data,len);
+				std::cerr << "receiver: " << bytes.get() << std::endl;
+			}
 			
 			auto c = shared->connection;
 			boost::asio::async_write(shared->socket,boost::asio::buffer(data,len),
 				[c](const boost::system::error_code &error,
 				    size_t bytes_transferred) {
 					
-					std::cerr << "async_write handler: " 
-					          << error.message() << " : "
-							  << bytes_transferred << std::endl;
+					if(log_level) {
+						std::cerr << "async_write handler: " 
+						          << error.message() << " : "
+						          << bytes_transferred << std::endl;
+					}
 					
 					if(error) {
 						c.disconnect();
@@ -189,7 +199,9 @@ public:
 		
 		auto sender = [this](void *data, size_t len) -> int {
 			return this->cp.send_async(data,len,[](int status, size_t len) {
-				fprintf(stderr,"sender completed[%i][%i]\n",status,len);
+				if(log_level) {
+					fprintf(stderr,"sender completed[%i][%i]\n",status,len);
+				}
 			});		
 			//fprintf(stderr,"sender[%p][%i]\n",data,len);
 			/*this->send_queue.push( std::make_pair(data,len) );

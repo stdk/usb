@@ -216,71 +216,41 @@ int cp210x::set_ctl(uint16_t ctl) {
 	return set_interface_config(CP210X_SET_LINE_CTL,&ctl,sizeof(ctl)) == sizeof(ctl);	
 }
 
-/*int cp210x::send(void *buffer, size_t len, uint32_t timeout) {
+int cp210x::send(void *buffer, size_t len, uint32_t timeout) {
 	int transferred = 0;
 	
 	int ret = handle.bulk_transfer(UART_ENDPOINT_OUT,buffer,len,&transferred,timeout);
 	
 	return ret ? -1 : transferred;
-}*/
+}
 
-/*int cp210x::recv(void *buffer, size_t len, uint32_t timeout) {
+int cp210x::recv(void *buffer, size_t len, uint32_t timeout) {
 	int transferred = 0;
 	
 	int ret = handle.bulk_transfer(UART_ENDPOINT_IN,buffer,len,&transferred,timeout);
 	
 	return ret ? -1 : transferred;
-}*/
-
-int cp210x::recv_async() {
-	return recv_transfer.submit();
 }
 
-/*
-class cp210x_send_transfer_handler
-{
-	boost::shared_ptr<usb::transfer> t;
-	boost::function<void (int status, size_t bytes_transferred)> callback;
-public:
-	cp210x_send_transfer_handler(boost::shared_ptr<usb::transfer> _t,
-	 boost::function<void (int status, size_t bytes_transferred)> _callback)
-	:t(_t),callback(_callback) {
-	
-	}
-
-	void operator()(boost::signals2::connection c, usb::transfer *tr) {
-		fprintf(stderr,"A callback use_count = %i\n",t.use_count());
-		fprintf(stderr,"cp210x::send_callback[%p]\n",tr);
-		callback(tr->status(),tr->actual_length());
-		c.disconnect();
-		//tr->transfer_completed.disconnect_all_slots();
-		t.reset();
-		fprintf(stderr,"B callback use_count = %i\n",t.use_count());
-	}
-};*/
+int cp210x::recv_async() {
+	return auto_recv ? -1 : recv_transfer.submit();
+}
 
 int cp210x::send_async(void *buffer, size_t len,
                        boost::function<void (int status, size_t bytes_transferred)> callback, 
 					   uint32_t timeout) {
-	boost::shared_ptr<usb::transfer> t(new usb::transfer(handle,LIBUSB_TRANSFER_TYPE_BULK,UART_ENDPOINT_OUT,0,timeout));
+	boost::shared_ptr<usb::transfer> t(new usb::transfer(handle,LIBUSB_TRANSFER_TYPE_BULK,
+	                                                     UART_ENDPOINT_OUT,0,timeout));
 	t->set_buffer(buffer,len);
 	
 	auto handler = [t,callback](boost::signals2::connection c,usb::transfer *tr) mutable {
-		fprintf(stderr,"A callback use_count = %i\n",t.use_count());
-		fprintf(stderr,"cp210x::send_callback[%p]\n",tr);
+		//fprintf(stderr,"cp210x::send_callback[%p]\n",tr);
 		callback(tr->status(),tr->actual_length());
-		t->transfer_completed.disconnect_all_slots();
 		c.disconnect();
-		//tr->transfer_completed.disconnect_all_slots();
 		t.reset();
-		fprintf(stderr,"B callback use_count = %i\n",t.use_count());
-		
 	};
 	
-	//t->transfer_completed.connect_extended(handler);
 	t->transfer_completed.connect_extended(handler);
-	
-	fprintf(stderr,"use_count = %i\n",t.use_count());
 	
 	return t->submit();
 }
@@ -317,13 +287,13 @@ int cp210x::set_interface_config_single(uint8_t request, unsigned int data) {
 }
 
 int cp210x::set_device_config(uint16_t value, uint16_t index,const void *data, size_t len) {
-	return handle.control_transfer(REQTYPE_HOST_TO_DEVICE,
-	                               CP2101_CONFIG,value,index,data,len,USB_CTRL_SET_TIMEOUT);
+	return handle.control_transfer(REQTYPE_HOST_TO_DEVICE,CP2101_CONFIG,
+	                               value,index,data,len,USB_CTRL_SET_TIMEOUT);
 }
 
 int cp210x::get_device_config(uint16_t value, uint16_t index,void *data, size_t len) {
-	return handle.control_transfer(REQTYPE_DEVICE_TO_HOST,
-	                               CP2101_CONFIG,value,index,data,len,USB_CTRL_GET_TIMEOUT);
+	return handle.control_transfer(REQTYPE_DEVICE_TO_HOST,CP2101_CONFIG,
+	                               value,index,data,len,USB_CTRL_GET_TIMEOUT);
 }
 
 int cp210x::set_config_string(uint16_t value, size_t max_length, char* data) {
@@ -333,7 +303,9 @@ int cp210x::set_config_string(uint16_t value, size_t max_length, char* data) {
 	boost::shared_array<char> buffer(new char[max_length + 2]);
 	size_t outbytesleft = max_length;
 	size_t inbytesleft = strlen(data);
-	if((size_t)-1 == cd.convert(data,&inbytesleft,buffer.get() + 2,&outbytesleft)) return -1;
+	if((size_t)-1 == cd.convert(data,&inbytesleft,buffer.get() + 2,&outbytesleft)) {
+		return -1;
+	}
 	
 	size_t length = max_length - outbytesleft;
 	buffer[0] = length + 2;

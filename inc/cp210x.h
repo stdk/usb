@@ -69,7 +69,7 @@ public:
 	
 	uint16_t get_ctl();
 	int set_ctl(uint16_t ctl);
-	
+
 	boost::signals2::signal<void (int status, void *data, size_t len)> data_received;
 	
 	int recv_async();
@@ -77,8 +77,8 @@ public:
 	               boost::function<void (int status, size_t bytes_transferred)> callback,
 	               uint32_t timeout = 1000);
 	
-	//int send(void *buffer, size_t len, uint32_t timeout = 1000);
-	//int recv(void *buffer, size_t len, uint32_t timeout = 1000);
+	int send(void *buffer, size_t len, uint32_t timeout = 1000);
+	int recv(void *buffer, size_t len, uint32_t timeout = 1000);
 		
 	int set_product_string(char *s);
 	int get_product_string(char *s, size_t len);

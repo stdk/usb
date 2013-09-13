@@ -376,7 +376,7 @@ void transfer::init_native_transfer() {
 	}
 	
 	auto deleter = [](libusb_transfer *t) {
-		fprintf(stderr,"libusb_free_transfer[%p]\n",t);
+		if(log_level) fprintf(stderr,"libusb_free_transfer[%p]\n",t);
 		
 		/*if(int ret = libusb_cancel_transfer(t)) {
 			fprintf(stderr,"libusb_cancel_transfer[%s]\n",libusb_error_name(ret));
@@ -410,7 +410,7 @@ transfer::transfer(device_handle _dev,
 }
 
 transfer::~transfer() {
-	fprintf(stderr,"~transfer\n");
+	if(log_level) fprintf(stderr,"~transfer\n");
 }
 
 transfer::operator bool() const {

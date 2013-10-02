@@ -8,7 +8,7 @@ int main(int argc, char **argv)
 {
 	usb::context context(3);
 	
-	cp210x cp(context);
+	cp210x cp(context,false);
 	if(!cp) {
 		printf("No cp210x device found\n");
 		return 1;

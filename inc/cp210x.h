@@ -35,7 +35,7 @@ class cp210x
 	
 	int set_config_string(uint16_t value, size_t max_length, char* data);
 public:
-	enum Data {
+	enum data_t {
 		data_mask  = 0x0f00,
 		data5 = 0x0500,
 		data6 = 0x0600,
@@ -44,7 +44,7 @@ public:
 		data9 = 0x0900
 	};
 	
-	enum Parity {
+	enum parity_t {
 		parity_mask  = 0x00f0,
 		parity_none  = 0x0000,
 		parity_odd   = 0x0010,
@@ -53,7 +53,7 @@ public:
 		parity_space = 0x0040		
 	};
 	
-	enum Stop {
+	enum stop_t {
 		stop_mask = 0x000f,
 		stop1     = 0x0000,
 		stop1_5   = 0x0001,

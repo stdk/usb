@@ -100,6 +100,7 @@ cp210x::cp210x(const usb::context &ctx, bool _auto_recv)
 }
 
 cp210x::~cp210x() {
+	auto_recv = false;
 	completed = 1;
 	//io_thread.interrupt();
 	io_thread.join();

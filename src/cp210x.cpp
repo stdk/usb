@@ -8,6 +8,9 @@
 
 #define VENDOR_ID 0x10c4
 #define PRODUCT_ID 0xea60
+ 
+//#define VENDOR_ID 0x05e3
+//#define PRODUCT_ID 0x0608
 
 #define USB_CTRL_SET_TIMEOUT    5000
 #define USB_CTRL_GET_TIMEOUT    5000
@@ -76,13 +79,13 @@ cp210x::cp210x(const usb::context &ctx, bool _auto_recv)
 	//printf("cp210x device descriptor:\n");
 	//device.descriptor().print("-> ");
 	
-	if(set_interface_config_single(CP210X_IFC_ENABLE,UART_ENABLE)) {
+	/*if(set_interface_config_single(CP210X_IFC_ENABLE,UART_ENABLE)) {
 		printf("Cannot enable UART\n");
 	}
 	
 	if(set_interface_config_single(CP210X_PURGE,PURGE_TRANSMIT_QUEUE | PURGE_RECEIVE_QUEUE)) {
 		printf("Cannot purge device io queues\n");
-	}
+	}*/
 	
 	auto recv_callback = [this](usb::transfer *tr) {
 		//fprintf(stderr,"cp210x::recv_callback\n");

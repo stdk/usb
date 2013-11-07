@@ -27,8 +27,23 @@ int main() {
 		unix_server s2(io_service,d.get_stream(0),
 		               boost::asio::local::stream_protocol::endpoint("/tmp/cp"));*/
 		 
-		tcp_server server(io_service,d.get_stream(0),
+		tcp_server server0(io_service,d.get_stream(0),
 		                boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(),1300));
+						
+		tcp_server server1(io_service,d.get_stream(1),
+		                boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(),1301));
+		
+		tcp_server server2(io_service,d.get_stream(2),
+		                boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(),1302));
+		
+		tcp_server server3(io_service,d.get_stream(3),
+		                boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(),1303));
+		
+		tcp_server server4(io_service,d.get_stream(4),
+		                boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(),1304));
+						
+		tcp_server server5(io_service,d.get_stream(5),
+		                boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(),1305));
 		
 		io_service.run();
 	} catch (std::exception& e) {

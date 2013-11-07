@@ -6,9 +6,21 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/bind.hpp>
 
-serial_stream::serial_stream(boost::asio::io_service &io_svc, 
-                             const char *path, const char *opts):serial(io_svc) {
-	serial.open(path);
+serial_stream::serial_stream(boost::asio::io_service &io_svc, const char *_path, const char *_opts)
+:serial(io_svc), path(_path), opts(_opts) {
+	
+	open_serial();		
+	initiate_read();
+}
+
+void serial_stream::open_serial() {
+	std::cerr << "opening serial port" << std::endl;
+	boost::system::error_code open_error;
+	serial.open(path, open_error);
+	if(open_error) {
+		std::cerr << "open error: " << open_error.message() << std::endl;
+		return;
+	}
 		
 	std::istringstream json_src(opts);
 		
@@ -20,7 +32,7 @@ serial_stream::serial_stream(boost::asio::io_service &io_svc,
 	int parity = options.get<int>("parity");
 	std::cerr << "parity: " << parity << std::endl;
 		
-	using boost::asio::serial_port_base;		
+	using boost::asio::serial_port_base;
 		
 	const serial_port_base::parity parity_opt((serial_port_base::parity::type)parity);
 	const serial_port_base::stop_bits stop_bits_opt(serial_port_base::stop_bits::one);
@@ -30,18 +42,20 @@ serial_stream::serial_stream(boost::asio::io_service &io_svc,
 	serial.set_option(parity_opt);
 	serial.set_option(stop_bits_opt);
 	serial.set_option(serial_port_base::flow_control(serial_port_base::flow_control::none));
-		
-	initiate_read();
 }
 
 void serial_stream::read_callback(size_t bytes_transferred, const boost::system::error_code &error) {
-	if(error || !bytes_transferred) {
+	if(error) {
 		std::cerr << "read_callback error" << ": " << error << error.message() << ": " << std::endl;
-		return;
+		boost::system::error_code close_error;
+		serial.close(close_error);
+		if(close_error) {
+			std::cerr << "close error: " << error.message() << std::endl;
+		}
+	} else {
+		data_received(read_buf,bytes_transferred);
+		initiate_read();
 	}
-		
-	data_received(read_buf,bytes_transferred);
-	initiate_read();
 }
 
 bool serial_stream::check_callback(size_t bytes_transferred, const boost::system::error_code &error) {
@@ -58,9 +72,14 @@ void serial_stream::initiate_read() {
 }
 
 int serial_stream::send(void *data, size_t len, base_stream::send_callback callback) {
+	if(!serial.is_open()) {
+		open_serial();
+		initiate_read();
+	}
+
 	boost::asio::async_write(serial,boost::asio::buffer(data,len),
 		[callback](const boost::system::error_code &error, size_t bytes_transferred) {
-			callback(0,bytes_transferred);										
+			callback(error ? -1 : 0,bytes_transferred);										
 		});
 	return 0;
 }

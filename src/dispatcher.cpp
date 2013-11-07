@@ -10,8 +10,11 @@ dispatcher::dispatcher(usb::context &_context,boost::asio::io_service &io_svc)
 :context(_context),cp(context,true) {
 	if(!cp) return;
 	
-	cp.set_baud(38400);
-	cp.set_ctl(cp210x::data8 | cp210x::parity_none | cp210x::stop1);
+//	cp.set_baud(38400);
+//	cp.set_ctl(cp210x::data8 | cp210x::parity_even | cp210x::stop1);
+	
+//	uint32_t baud = cp.get_baud();
+//	uint16_t ctl = cp.get_ctl();
 		
 	auto sender = [this](void *data, size_t len, base_stream::send_callback cb) {
 		return this->cp.send_async(data,len,cb);		

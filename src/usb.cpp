@@ -102,6 +102,8 @@ device_handle::device_handle(device &dev, bool reset) {
 		int ret = libusb_reset_device(_handle);
 		if(ret) {
 			fprintf(stderr,"libusb_reset_device(%p) -> %s\n",_handle,libusb_error_name(ret));
+			libusb_close(_handle);
+			return;
 		}
 	}
 	

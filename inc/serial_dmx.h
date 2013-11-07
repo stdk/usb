@@ -17,6 +17,12 @@ public:
 	dmx_stream(sender_t _sender, uint32_t _index);
 	~dmx_stream();
 	
+	struct buffer_t {
+		uint8_t addr;
+		uint8_t len;
+		uint8_t data[62];	
+	} buffer;
+	
 	virtual int send(void *data, size_t len, base_stream::send_callback callback);
 private:
 	sender_t sender;

@@ -2,7 +2,7 @@
 #define STREAM_SERVER_H
 
 #include <stream_connection.h>
-
+#include <boost/shared_array.hpp>
 #include <boost/asio.hpp>
 
 template<class Protocol>

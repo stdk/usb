@@ -11,7 +11,7 @@ public:
 	typedef boost::function<void (int status, size_t len)> send_callback;
 
 	~base_stream() {
-		std::cerr << "~base_stream" << std::endl;	
+		std::cerr << "~base_stream" << std::endl;
 	}
 
 	boost::signals2::signal<void (void *data, size_t len)> data_received;

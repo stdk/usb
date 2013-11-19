@@ -10,12 +10,16 @@
 class serial_stream : public base_stream
 {
 	boost::asio::serial_port serial;
+	boost::asio::deadline_timer reviver;
 
 	std::string path;
 	std::string opts;
-	void open_serial();
+	bool open_serial();
 
 	uint8_t read_buf[256];
+
+	void setup_reviver();
+	void reviver_callback(const boost::system::error_code &error);
 	
 	void read_callback(size_t bytes_transferred, const boost::system::error_code &error);
 	bool check_callback(size_t bytes_transferred, const boost::system::error_code &error);

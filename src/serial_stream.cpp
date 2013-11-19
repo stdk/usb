@@ -7,19 +7,17 @@
 #include <boost/bind.hpp>
 
 serial_stream::serial_stream(boost::asio::io_service &io_svc, const char *_path, const char *_opts)
-:serial(io_svc), path(_path), opts(_opts) {
-	
+:serial(io_svc),reviver(io_svc),path(_path),opts(_opts) {
 	open_serial();		
-	initiate_read();
 }
 
-void serial_stream::open_serial() {
+bool serial_stream::open_serial() {
 	std::cerr << "opening serial port" << std::endl;
 	boost::system::error_code open_error;
 	serial.open(path, open_error);
 	if(open_error) {
 		std::cerr << "open error: " << open_error.message() << std::endl;
-		return;
+		return false;
 	}
 		
 	std::istringstream json_src(opts);
@@ -42,6 +40,30 @@ void serial_stream::open_serial() {
 	serial.set_option(parity_opt);
 	serial.set_option(stop_bits_opt);
 	serial.set_option(serial_port_base::flow_control(serial_port_base::flow_control::none));
+	
+	initiate_read();
+	
+	return true;
+}
+
+void serial_stream::setup_reviver() {
+	reviver.expires_from_now(boost::posix_time::milliseconds(1000));
+	reviver.async_wait(boost::bind(&serial_stream::reviver_callback, this, boost::asio::placeholders::error));
+}
+
+void serial_stream::reviver_callback(const boost::system::error_code &error) {
+	if(!error) {
+		std::cerr << "reviver_callback" << std::endl;
+		if(!this->serial.is_open()) {
+			if(!open_serial()) {
+				std::cerr << "reviver next" << std::endl;
+				setup_reviver();
+			}
+		}
+	} else {
+		std::cerr << "reviver_callback cancelled: " << error.message() << std::endl;
+		return;
+	}
 }
 
 void serial_stream::read_callback(size_t bytes_transferred, const boost::system::error_code &error) {
@@ -50,8 +72,9 @@ void serial_stream::read_callback(size_t bytes_transferred, const boost::system:
 		boost::system::error_code close_error;
 		serial.close(close_error);
 		if(close_error) {
-			std::cerr << "close error: " << error.message() << std::endl;
+			std::cerr << "serial_stream close error: " << error.message() << std::endl;
 		}
+		setup_reviver();
 	} else {
 		data_received(read_buf,bytes_transferred);
 		initiate_read();

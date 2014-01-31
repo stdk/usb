@@ -21,6 +21,12 @@ int main() {
 	const char *screen_socket = "/tmp/screen";
 	::unlink(screen_socket);
 	
+	const char *card_socket = "/tmp/card";
+	::unlink(card_socket);
+	
+	const char *printer_socket = "/tmp/printer";
+	::unlink(printer_socket);
+	
 	boost::asio::signal_set signals(io_service, SIGINT, SIGQUIT);
 	signals.async_wait([&](const boost::system::error_code &error, int s) {
 		if(!error) {
@@ -44,12 +50,12 @@ int main() {
 		 
 		unix_server screen_server(io_service,d.get_stream(1),
 		                boost::asio::local::stream_protocol::endpoint(screen_socket));
-						
-		tcp_server server2(io_service,d.get_stream(2),
-		                boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(),1301));
 		
-		tcp_server server3(io_service,d.get_stream(3),
-		                boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(),1303));
+		unix_server card_server(io_service,d.get_stream(2),
+		                boost::asio::local::stream_protocol::endpoint(card_socket));						
+		
+		unix_server printer_server(io_service,d.get_stream(3),
+		                boost::asio::local::stream_protocol::endpoint(printer_socket));						
 		
 		tcp_server server4(io_service,d.get_stream(4),
 		                boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(),1304));
@@ -61,6 +67,8 @@ int main() {
 		
 		::unlink(bar_socket);
 		::unlink(screen_socket);
+		::unlink(card_socket);
+		::unlink(printer_socket);
 	} catch (std::exception& e) {
 		std::cerr << "Exception:" << e.what() << std::endl;
 		return 3;

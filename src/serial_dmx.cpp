@@ -31,7 +31,7 @@ int dmx_stream::send(void *data, size_t len, base_stream::send_callback callback
 		}
 	};
 	
-	return sender(&buffer, buffer.len + 2, cb);
+	return sender(&buffer, sizeof(buffer)/*buffer.len + 2*/, cb);
 }
 
 serial_dmx::serial_dmx(boost::asio::io_service &io_svc):serial(io_svc,"/dev/ttyUSB1") {
